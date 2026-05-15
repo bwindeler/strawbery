@@ -86,7 +86,6 @@ All targets are public-facing and work without login.
 | Gemini | gemini.google.com/app |
 | Mistral Le Chat | chat.mistral.ai |
 
-
 ---
 
 ## Repository Structure
