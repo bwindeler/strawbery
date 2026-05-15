@@ -56,7 +56,7 @@ async function injectContentScript(tabId) {
 
 // ── Per-turn execution ────────────────────────────────────────────────────────
 
-async function runTurnInTab(tabId, prompt, selectorOpts) {
+async function runTurnInTab(tabId, prompt, selectorOpts, isFirstTurn = false) {
   // Wrap the injected function in try/catch and return a {ok, result, error}
   // envelope — Chrome's executeScript doesn't reliably surface async rejections
   // via result.error, so we handle error propagation ourselves.
@@ -73,7 +73,7 @@ async function runTurnInTab(tabId, prompt, selectorOpts) {
         return { ok: false, error: err.message ?? String(err) };
       }
     },
-    args: [prompt, selectorOpts],
+    args: [prompt, { ...selectorOpts, isFirstTurn }],
   });
 
   const envelope = results[0]?.result;
@@ -107,7 +107,7 @@ async function runScriptOnTarget(target, turns, onProgress) {
 
     for (let i = 0; i < turns.length; i++) {
       onProgress?.({ target, status: "running", turnIndex: i });
-      let response = await runTurnInTab(tabId, turns[i].prompt, selectorOpts);
+      let response = await runTurnInTab(tabId, turns[i].prompt, selectorOpts, i === 0);
       // Apply per-target post-processing (e.g. stripping timestamps).
       // responseClean is a plain function in targets.js, not serialisable to JSON,
       // so we apply it here in the orchestrator after the script returns.

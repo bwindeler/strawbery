@@ -95,6 +95,50 @@
     return true;
   }
 
+  // ── Dialog / gate dismissal ───────────────────────────────────────────────
+  // Called once after page load to click past ToU / cookie-consent dialogs.
+  // Tries each selector in order; stops after the first successful click.
+  // Returns true if something was dismissed, false if nothing needed clicking.
+
+  const DISMISS_SELECTORS = [
+    // Text-match buttons (most reliable across sites)
+    // Evaluated via innerText so we catch any element, not just known classes.
+    null, // placeholder — handled below via text scan
+  ];
+
+  // Button texts that indicate acceptance (case-insensitive).
+  const ACCEPT_TEXTS = [
+    "accept and continue",
+    "accept all",
+    "i agree",
+    "agree and continue",
+    "agree",
+    "accept",
+    "got it",
+    "continue",
+    "ok",
+  ];
+
+  async function dismissDialogs() {
+    // Give any lazy-rendered modals a moment to appear.
+    await new Promise((r) => setTimeout(r, 600));
+
+    const buttons = [...document.querySelectorAll("button, [role='button'], a[href='#']")];
+    for (const btn of buttons) {
+      const text = (btn.innerText ?? btn.textContent ?? "").trim().toLowerCase();
+      if (ACCEPT_TEXTS.some((t) => text === t || text.startsWith(t))) {
+        // Only click if the button is actually visible.
+        const rect = btn.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          btn.click();
+          await new Promise((r) => setTimeout(r, 500));
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // ── Send ──────────────────────────────────────────────────────────────────
 
   function clickSend(sendSelector) {
@@ -172,7 +216,9 @@
   // ── High-level runner ─────────────────────────────────────────────────────
 
   async function runTurn(prompt, opts = {}) {
-    const { inputSelector, sendSelector, responseSelector } = opts;
+    const { inputSelector, sendSelector, responseSelector, isFirstTurn } = opts;
+    // On the first turn, try to dismiss any ToU / cookie-consent gate.
+    if (isFirstTurn) await dismissDialogs();
     injectText(prompt, inputSelector);
     await new Promise((r) => setTimeout(r, 250)); // Let React/Vue digest the input event.
     clickSend(sendSelector);
@@ -184,6 +230,7 @@
   window.__harnessRunner = {
     findInput,
     findSendButton,
+    dismissDialogs,
     injectText,
     clickSend,
     waitForResponse,
