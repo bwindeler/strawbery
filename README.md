@@ -86,7 +86,6 @@ All targets are public-facing and work without login.
 | Gemini | gemini.google.com/app |
 | Mistral Le Chat | chat.mistral.ai |
 
-> **Mistral note:** Le Chat requires login. If you are not signed in, Mistral will error with no response. The other two targets work anonymously.
 
 ---
 

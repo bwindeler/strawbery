@@ -4,7 +4,7 @@
 // Notes on login requirements:
 //   ChatGPT — works without login (free tier available)
 //   Gemini   — works without login when already on /app; redirects to Google auth if not signed in
-//   Mistral  — requires login; anonymous requests return 503 from their API
+//   Mistral  — works without login; anonymous access confirmed on chat.mistral.ai
 const BUILTIN_TARGETS = [
   {
     id: "chatgpt",
