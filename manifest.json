@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "AI Eval Harness",
+  "version": "0.1.0",
+  "description": "Batch evaluation harness for multi-target AI chatbot research",
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Open Eval Harness"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["core/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
