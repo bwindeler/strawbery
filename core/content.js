@@ -106,32 +106,47 @@
     null, // placeholder — handled below via text scan
   ];
 
-  // Button texts that indicate acceptance (case-insensitive).
+  // Button texts that indicate acceptance (case-insensitive, exact match or prefix).
+  // Keep this list specific to avoid accidentally clicking unrelated buttons.
   const ACCEPT_TEXTS = [
     "accept and continue",
+    "accept all cookies",
     "accept all",
+    "i agree to the",
     "i agree",
     "agree and continue",
     "agree",
     "accept",
     "got it",
-    "continue",
-    "ok",
   ];
 
   async function dismissDialogs() {
     // Give any lazy-rendered modals a moment to appear.
     await new Promise((r) => setTimeout(r, 600));
 
-    const buttons = [...document.querySelectorAll("button, [role='button'], a[href='#']")];
-    for (const btn of buttons) {
+    // First look for buttons inside a visible modal/dialog overlay.
+    // Fall back to scanning all buttons if no modal wrapper is detected.
+    const modalRoot =
+      document.querySelector('[role="dialog"], [role="alertdialog"], dialog') ||
+      [...document.querySelectorAll("*")].find((el) => {
+        const s = window.getComputedStyle(el);
+        return (
+          (s.position === "fixed" || s.position === "absolute") &&
+          parseInt(s.zIndex, 10) > 50 &&
+          el.offsetWidth > 200 &&
+          el.offsetHeight > 80
+        );
+      }) ||
+      document.body;
+
+    const candidates = [...modalRoot.querySelectorAll("button, [role='button']")];
+    for (const btn of candidates) {
       const text = (btn.innerText ?? btn.textContent ?? "").trim().toLowerCase();
       if (ACCEPT_TEXTS.some((t) => text === t || text.startsWith(t))) {
-        // Only click if the button is actually visible.
         const rect = btn.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
           btn.click();
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 600));
           return true;
         }
       }
