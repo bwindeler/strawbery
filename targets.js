@@ -32,10 +32,8 @@ const BUILTIN_TARGETS = [
     // ProseMirror contenteditable editor
     inputSelector: ".ProseMirror",
     sendSelector: 'button[aria-label="Send"]',
-    // Mistral uses data-message-author-role like ChatGPT's API
-    responseSelector: '[data-message-author-role="assistant"]',
-    // Mistral appends a timestamp (e.g. "4:51pm") directly to the text content.
-    // Strip it so the recorded response contains only the model's output.
-    responseClean: (text) => text.replace(/\s*\d{1,2}:\d{2}\s*(?:am|pm)\s*$/i, "").trim(),
+    // Target the inner text container — the outer assistant div has empty textContent
+    // during the initial render (avatar only), so the debounce never fires on it.
+    responseSelector: '[data-message-author-role="assistant"] [data-testid="text-message-part"]',
   },
 ];

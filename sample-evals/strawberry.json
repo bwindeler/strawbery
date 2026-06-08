@@ -1,0 +1,9 @@
+{
+  "id": "strawberry",
+  "name": "Strawberry R-count",
+  "turns": [
+    {
+      "prompt": "How many r's are there in the word strawberry?"
+    }
+  ]
+}

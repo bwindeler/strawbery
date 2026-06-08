@@ -40,6 +40,23 @@ function init() {
 
   runBtn.addEventListener("click", onRunClick);
   saveBtn.addEventListener("click", saveTranscript);
+
+  loadDefaultScript();
+}
+
+async function loadDefaultScript() {
+  try {
+    const url = chrome.runtime.getURL("sample-evals/strawberry.json");
+    const res = await fetch(url);
+    const parsed = await res.json();
+    if (!parsed.turns || !Array.isArray(parsed.turns)) return;
+    currentScript = parsed;
+    scriptNameEl.textContent = parsed.name || "strawberry.json";
+    scriptNameEl.className = "script-name loaded";
+    runBtn.disabled = false;
+  } catch (_) {
+    // Non-fatal — user can still load a script manually.
+  }
 }
 
 // ── Script loading ────────────────────────────────────────────────────────────
