@@ -12,6 +12,8 @@ A Chrome extension for running structured, multi-turn evaluations against multip
 4. Click **Load unpacked** and select this folder.
 5. The extension icon appears in the toolbar. Click it to open the sidepanel.
 
+> Tip: You can select "Details" for the extension and "Allow in Incognito" to easily use these chatbots while logged out.
+
 ---
 
 ## Usage
@@ -39,11 +41,11 @@ A Chrome extension for running structured, multi-turn evaluations against multip
 }
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `id` | Yes | Short identifier used in the exported filename |
-| `name` | Yes | Human-readable name shown in the sidepanel |
-| `turns` | Yes | Array of turns, each with a `prompt` string |
+| Field   | Required | Description                                    |
+| ------- | -------- | ---------------------------------------------- |
+| `id`    | Yes      | Short identifier used in the exported filename |
+| `name`  | Yes      | Human-readable name shown in the sidepanel     |
+| `turns` | Yes      | Array of turns, each with a `prompt` string    |
 
 Multi-turn scripts maintain conversation context — each prompt is sent into the same ongoing chat session for that target.
 
@@ -84,11 +86,11 @@ Exported as JSON:
 
 All three targets work without login.
 
-| Name | URL |
-|---|---|
-| ChatGPT | chatgpt.com |
-| Gemini | gemini.google.com/app |
-| Mistral Le Chat | chat.mistral.ai |
+| Name            | URL                   |
+| --------------- | --------------------- |
+| ChatGPT         | chatgpt.com           |
+| Gemini          | gemini.google.com/app |
+| Mistral Le Chat | chat.mistral.ai       |
 
 ---
 
