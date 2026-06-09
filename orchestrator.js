@@ -89,7 +89,7 @@ async function runTurnInTab(tabId, prompt, selectorOpts, isFirstTurn = false) {
 
 // ── Target-level runner ───────────────────────────────────────────────────────
 
-async function runScriptOnTarget(target, turns, onProgress) {
+async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false } = {}) {
   const selectorOpts = {
     inputSelector:    target.inputSelector    ?? null,
     sendSelector:     target.sendSelector     ?? null,
@@ -119,18 +119,18 @@ async function runScriptOnTarget(target, turns, onProgress) {
 
     return { target, turns: completedTurns };
   } finally {
-    if (tabId != null) chrome.tabs.remove(tabId).catch(() => {});
+    if (tabId != null && closeTabs) chrome.tabs.remove(tabId).catch(() => {});
   }
 }
 
 // ── All-targets runner ────────────────────────────────────────────────────────
 
-async function runScriptOnAllTargets(targets, turns, onProgress) {
+async function runScriptOnAllTargets(targets, turns, onProgress, opts = {}) {
   const results = [];
 
   for (const target of targets) {
     try {
-      const result = await runScriptOnTarget(target, turns, onProgress);
+      const result = await runScriptOnTarget(target, turns, onProgress, opts);
       onProgress?.({ target, status: "done", turnIndex: turns.length - 1 });
       results.push(result);
     } catch (err) {

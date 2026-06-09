@@ -137,10 +137,12 @@ async function onRunClick() {
   resultsSection.classList.remove("hidden");
 
   try {
+    const closeTabs = document.getElementById("close-tabs-toggle").checked;
     const results = await runScriptOnAllTargets(
       targets,
       currentScript.turns,
-      onProgress
+      onProgress,
+      { closeTabs }
     );
     transcripts = results;
     results.forEach((r) => fillTargetCard(r));
