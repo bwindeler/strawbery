@@ -142,10 +142,9 @@ async function onRunClick() {
       targets,
       currentScript.turns,
       onProgress,
-      { closeTabs }
+      { closeTabs, onTargetDone: (r) => fillTargetCard(r) }
     );
     transcripts = results;
-    results.forEach((r) => fillTargetCard(r));
   } catch (err) {
     showError(err.message);
   } finally {

@@ -126,16 +126,20 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
 // ── All-targets runner ────────────────────────────────────────────────────────
 
 async function runScriptOnAllTargets(targets, turns, onProgress, opts = {}) {
+  const { onTargetDone, ...runOpts } = opts;
   const results = [];
 
   for (const target of targets) {
     try {
-      const result = await runScriptOnTarget(target, turns, onProgress, opts);
+      const result = await runScriptOnTarget(target, turns, onProgress, runOpts);
       onProgress?.({ target, status: "done", turnIndex: turns.length - 1 });
       results.push(result);
+      onTargetDone?.(result);
     } catch (err) {
       onProgress?.({ target, status: "error", turnIndex: 0, error: err.message });
-      results.push({ target, turns: [], error: err.message });
+      const result = { target, turns: [], error: err.message };
+      results.push(result);
+      onTargetDone?.(result);
     }
   }
 
