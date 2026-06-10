@@ -1,4 +1,4 @@
-# chatbot-evals
+# strawbery
 
 A Chrome extension for running structured, multi-turn evaluations against multiple AI chatbots in batch. Designed for research use — prepare a prompt script, run it across targets, export the full transcript.
 
@@ -97,7 +97,7 @@ All three targets work without login.
 ## Repository Structure
 
 ```
-chatbot-evals/
+strawbery/
 ├── manifest.json       Chrome extension manifest (MV3)
 ├── background.js       Service worker — opens the sidepanel on toolbar click
 ├── sidepanel.html      Extension sidepanel UI

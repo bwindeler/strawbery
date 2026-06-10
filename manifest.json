@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "AI Eval Harness",
+  "name": "strawbery",
   "version": "0.1.0",
   "description": "Batch evaluation harness for multi-target AI chatbot research",
   "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs"],
@@ -12,7 +12,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Open Eval Harness",
+    "default_title": "Open strawbery",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
