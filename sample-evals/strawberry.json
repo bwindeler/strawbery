@@ -1,9 +1,12 @@
 {
-  "id": "strawberry",
-  "name": "Strawberry R-count",
+  "id": "strawbery",
+  "name": "Strawbery R-count",
   "turns": [
     {
-      "prompt": "How many r's are there in the word strawberry?"
+      "prompt": "How many r's are there in strawbery"
+    },
+    {
+      "prompt": "can you double check?"
     }
   ]
 }

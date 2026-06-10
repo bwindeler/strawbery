@@ -156,30 +156,47 @@
 
   // ── Send ──────────────────────────────────────────────────────────────────
 
-  function clickSend(sendSelector) {
-    const btn = findSendButton(sendSelector);
-    if (!btn) throw new Error("__harnessRunner: no send button found");
-    btn.click();
-    return true;
+  // Polls up to 3s for the send button to be present and enabled.
+  // Gemini (and some other sites) briefly remove or disable the button after
+  // a response completes while the UI resets, so a single synchronous check
+  // fails on turn 2+.
+  async function clickSend(sendSelector) {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const btn = findSendButton(sendSelector);
+      if (btn && !btn.disabled) {
+        btn.click();
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error("__harnessRunner: no send button found");
   }
 
   // ── Response detection ────────────────────────────────────────────────────
 
   function waitForResponse(opts = {}) {
-    const { responseSelector, timeoutMs = 90000 } = opts;
+    const { responseSelector, stopSelector, timeoutMs = 90000 } = opts;
     return new Promise((resolve, reject) => {
       const textBefore = document.body.textContent;
+      // Snapshot the current last-response text so turn 2+ doesn't treat the
+      // already-rendered previous response as a new one starting the debounce.
+      const responseBefore = responseSelector ? (getLastResponseText(responseSelector) ?? "") : null;
       let lastText = "";
       let debounceTimer = null;
       let hasStarted = false;
+      let finished = false;
+      let stopSeen = false; // true once we've observed the stopSelector element in the DOM
 
       const finish = () => {
+        if (finished) return;
+        // Only gate on the stop element if we've actually seen it — a wrong
+        // selector would otherwise make this check always pass and block forever.
+        if (stopSelector && stopSeen && document.querySelector(stopSelector)) return;
+        finished = true;
         clearTimeout(debounceTimer);
         clearTimeout(overallTimer);
         observer.disconnect();
-        // When a specific selector is provided, ONLY accept text from that
-        // selector. If it still returns nothing, resolve with null so the
-        // caller gets a clean error instead of garbage page-JS content.
         if (responseSelector) {
           resolve(getLastResponseText(responseSelector) ?? null);
         } else {
@@ -189,18 +206,25 @@
       };
 
       const onMutation = () => {
+        if (stopSelector) {
+          const stopPresent = !!document.querySelector(stopSelector);
+          if (stopPresent) stopSeen = true;
+          // Stop element disappeared after being seen → generation is complete.
+          if (stopSeen && !stopPresent && hasStarted) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(finish, 200);
+            return;
+          }
+        }
+
         const targeted = responseSelector
           ? getLastResponseText(responseSelector)
           : null;
-        // When a specific selector is given, only track that element's text.
-        // Without a selector, track any body text change.
         const current = targeted ?? (responseSelector ? null : document.body.textContent);
 
         if (current === null || current === lastText) return;
 
-        // Don't start the debounce until something actually changes from the
-        // pre-send state — avoids triggering on pre-existing page activity.
-        if (!hasStarted && current !== (responseSelector ? "" : textBefore)) {
+        if (!hasStarted && current !== (responseSelector ? responseBefore : textBefore)) {
           hasStarted = true;
         }
         if (!hasStarted) return;
@@ -223,7 +247,6 @@
         reject(new Error(`__harnessRunner: response timeout after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      // Check immediately in case the response is already rendered (cached page).
       onMutation();
     });
   }
@@ -231,13 +254,12 @@
   // ── High-level runner ─────────────────────────────────────────────────────
 
   async function runTurn(prompt, opts = {}) {
-    const { inputSelector, sendSelector, responseSelector, isFirstTurn } = opts;
-    // On the first turn, try to dismiss any ToU / cookie-consent gate.
+    const { inputSelector, sendSelector, responseSelector, stopSelector, isFirstTurn } = opts;
     if (isFirstTurn) await dismissDialogs();
     injectText(prompt, inputSelector);
     await new Promise((r) => setTimeout(r, 250)); // Let React/Vue digest the input event.
-    clickSend(sendSelector);
-    return waitForResponse({ responseSelector });
+    await clickSend(sendSelector);
+    return waitForResponse({ responseSelector, stopSelector });
   }
 
   // ── Public API ────────────────────────────────────────────────────────────

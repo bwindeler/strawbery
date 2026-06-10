@@ -22,8 +22,26 @@ const BUILTIN_TARGETS = [
     // Gemini uses a Quill editor; .ql-clipboard is a hidden div — exclude it
     inputSelector: ".ql-editor:not(.ql-clipboard)",
     sendSelector: 'button[aria-label="Send message"]',
-    // model-response .model-response-text excludes the visually-hidden "Gemini said" H2
-    responseSelector: "model-response .model-response-text",
+    // Capture the full container so tool-call output isn't missed.
+    // The "Gemini said" visually-hidden H2 is stripped by responseClean below.
+    responseSelector: "model-response",
+    // Present while streaming (including during tool calls); disappears when done.
+    // Prevents the debounce from resolving mid-generation.
+    stopSelector: 'button[aria-label="Stop response"]',
+    responseClean: (text) => {
+      const langs = "Python|JavaScript|TypeScript|Java|C\\+\\+|C#|Bash|Shell|Go|Rust|SQL|HTML|CSS|Ruby|Swift|Kotlin|PHP|C";
+      return text
+        .replace(/Show code\s*/g, "")
+        .replace(/Gemini said\s*/gi, "")
+        .replace(/Analysis\s*Analysis\s*Query successful\s*/g, "")
+        // "Python<code>\n\nCode output<output>" → structured block
+        .replace(
+          new RegExp(`(${langs})(.*?)\\n+Code output(.*?)(?=\\n\\n|$)`, "gs"),
+          (_, lang, code, output) =>
+            `<Code block: ${lang}>\n${code.trim()}\nCode output:\n${output.trim()}\n<Code block end>`
+        )
+        .trim();
+    },
   },
   {
     id: "mistral",

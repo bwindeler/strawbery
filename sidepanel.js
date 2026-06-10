@@ -41,6 +41,7 @@ function init() {
   runBtn.addEventListener("click", onRunClick);
   saveBtn.addEventListener("click", saveTranscript);
 
+  initEditor();
   loadDefaultScript();
 }
 
@@ -302,6 +303,110 @@ function saveTranscript() {
   a.download = `eval-${currentScript?.id ?? "transcript"}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── Editor modal ─────────────────────────────────────────────────────────────
+
+function slugify(str) {
+  return str.trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function initEditor() {
+  $("new-script-btn").addEventListener("click", openEditor);
+  $("editor-cancel").addEventListener("click", closeEditor);
+  $("editor-add-turn").addEventListener("click", () => appendTurn(""));
+  $("editor-save").addEventListener("click", commitEditor);
+  $("editor-overlay").addEventListener("click", (e) => {
+    if (e.target === $("editor-overlay")) closeEditor();
+  });
+  $("editor-name").addEventListener("input", () => {
+    $("editor-id").value = slugify($("editor-name").value);
+  });
+}
+
+function openEditor() {
+  $("editor-name").value = "";
+  $("editor-id").value = "";
+  $("editor-err").textContent = "";
+  $("editor-turns").innerHTML = "";
+  appendTurn("");
+  $("editor-overlay").classList.remove("hidden");
+  $("editor-name").focus();
+}
+
+function closeEditor() {
+  $("editor-overlay").classList.add("hidden");
+}
+
+function appendTurn(value) {
+  const turns = $("editor-turns");
+  const idx = turns.children.length;
+  const row = document.createElement("div");
+  row.className = "ed-turn";
+  row.dataset.idx = idx;
+  row.innerHTML = `
+    <span class="ed-turn-num">${idx + 1}.</span>
+    <textarea placeholder="Enter prompt…" rows="2">${escHtml(value)}</textarea>
+    <button class="ed-turn-del" title="Remove">×</button>
+  `;
+  row.querySelector(".ed-turn-del").addEventListener("click", () => {
+    row.remove();
+    renumberTurns();
+  });
+  turns.appendChild(row);
+}
+
+function renumberTurns() {
+  [...$("editor-turns").children].forEach((row, i) => {
+    row.querySelector(".ed-turn-num").textContent = `${i + 1}.`;
+    row.dataset.idx = i;
+  });
+}
+
+async function commitEditor() {
+  const name = $("editor-name").value.trim();
+  const id   = $("editor-id").value.trim() || slugify(name);
+  const errEl = $("editor-err");
+  errEl.textContent = "";
+
+  if (!name) { errEl.textContent = "Name is required."; return; }
+
+  const prompts = [...$("editor-turns").querySelectorAll("textarea")]
+    .map((ta) => ta.value.trim())
+    .filter(Boolean);
+
+  if (!prompts.length) { errEl.textContent = "Add at least one turn."; return; }
+
+  const script = { id, name, turns: prompts.map((p) => ({ prompt: p })) };
+  const json   = JSON.stringify(script, null, 2);
+  const blob   = new Blob([json], { type: "application/json" });
+
+  try {
+    const fh = await window.showSaveFilePicker({
+      suggestedName: `${id}.json`,
+      startIn: "documents",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+    });
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    // Fallback: blob download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${id}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Load the new script directly into the sidebar.
+  currentScript = script;
+  scriptNameEl.textContent = name;
+  scriptNameEl.className = "script-name loaded";
+  runBtn.disabled = false;
+  closeEditor();
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

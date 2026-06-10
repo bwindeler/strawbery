@@ -94,6 +94,7 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
     inputSelector:    target.inputSelector    ?? null,
     sendSelector:     target.sendSelector     ?? null,
     responseSelector: target.responseSelector ?? null,
+    stopSelector:     target.stopSelector     ?? null,
   };
 
   onProgress?.({ target, status: "opening", turnIndex: 0 });
