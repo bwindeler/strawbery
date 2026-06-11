@@ -112,7 +112,7 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
       },
       args: [target.modelSelector ?? null, target.modelExtractPattern ?? null],
     });
-    const model = modelResults[0]?.result ?? null;
+    const model = modelResults[0]?.result ?? target.modelDefault ?? null;
 
     const completedTurns = [];
 

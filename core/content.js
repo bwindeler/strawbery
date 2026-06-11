@@ -274,7 +274,7 @@
     if (!text) return null;
     if (extractPattern) {
       const match = text.match(new RegExp(extractPattern));
-      return match ? match[1].trim() : text;
+      return match ? match[1].trim() : null;
     }
     return text;
   }

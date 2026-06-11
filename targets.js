@@ -14,10 +14,8 @@ const BUILTIN_TARGETS = [
     sendSelector: 'button[data-testid="send-button"]',
     // .markdown uses innerText-hostile CSS in dark mode; textContent works fine
     responseSelector: '[data-message-author-role="assistant"] .markdown',
-    // Logged-out UI only shows "ChatGPT" branding; read the default model from
-    // the server-rendered bootstrap JSON instead.
-    modelSelector: 'script#client-bootstrap',
-    modelExtractPattern: '"model":"(gpt-[^"]+)"',
+    // Logged-out UI shows no model name; fall back to a static label.
+    modelDefault: "default",
   },
   {
     id: "gemini",
