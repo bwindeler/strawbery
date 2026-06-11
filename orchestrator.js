@@ -104,6 +104,16 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
     tabId = await openTabAndWaitForLoad(target.url);
     await injectContentScript(tabId);
 
+    const modelResults = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (selector, extractPattern) => {
+        try { return window.__harnessRunner?.captureModel(selector, extractPattern) ?? null; }
+        catch (_) { return null; }
+      },
+      args: [target.modelSelector ?? null, target.modelExtractPattern ?? null],
+    });
+    const model = modelResults[0]?.result ?? null;
+
     const completedTurns = [];
 
     for (let i = 0; i < turns.length; i++) {
@@ -118,7 +128,7 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
       completedTurns.push({ prompt: turns[i].prompt, response });
     }
 
-    return { target, turns: completedTurns };
+    return { target, turns: completedTurns, model };
   } finally {
     if (tabId != null && closeTabs) chrome.tabs.remove(tabId).catch(() => {});
   }

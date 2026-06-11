@@ -262,6 +262,23 @@
     return waitForResponse({ responseSelector, stopSelector });
   }
 
+  // ── Model capture ─────────────────────────────────────────────────────────
+
+  function captureModel(selector, extractPattern) {
+    if (!selector) return null;
+    const el = document.querySelector(selector);
+    if (!el) return null;
+    // Prefer visible text content; fall back to aria-label for elements where
+    // the model name is encoded there (e.g. Gemini's "currently Flash").
+    const text = (el.textContent.trim() || el.getAttribute("aria-label") || "").trim();
+    if (!text) return null;
+    if (extractPattern) {
+      const match = text.match(new RegExp(extractPattern));
+      return match ? match[1].trim() : text;
+    }
+    return text;
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   window.__harnessRunner = {
@@ -272,5 +289,6 @@
     clickSend,
     waitForResponse,
     runTurn,
+    captureModel,
   };
 })();

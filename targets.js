@@ -14,6 +14,10 @@ const BUILTIN_TARGETS = [
     sendSelector: 'button[data-testid="send-button"]',
     // .markdown uses innerText-hostile CSS in dark mode; textContent works fine
     responseSelector: '[data-message-author-role="assistant"] .markdown',
+    // Logged-out UI only shows "ChatGPT" branding; read the default model from
+    // the server-rendered bootstrap JSON instead.
+    modelSelector: 'script#client-bootstrap',
+    modelExtractPattern: '"model":"(gpt-[^"]+)"',
   },
   {
     id: "gemini",
@@ -28,6 +32,8 @@ const BUILTIN_TARGETS = [
     // Present while streaming (including during tool calls); disappears when done.
     // Prevents the debounce from resolving mid-generation.
     stopSelector: 'button[aria-label="Stop response"]',
+    modelSelector: 'button[aria-label*="mode picker"]',
+    modelExtractPattern: 'currently (.+)$',
     responseClean: (text) => {
       const langs = "Python|JavaScript|TypeScript|Java|C\\+\\+|C#|Bash|Shell|Go|Rust|SQL|HTML|CSS|Ruby|Swift|Kotlin|PHP|C";
       return text

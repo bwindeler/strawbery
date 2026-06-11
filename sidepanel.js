@@ -13,21 +13,21 @@
 
 const $ = (id) => document.getElementById(id);
 
-const scriptNameEl    = $("script-name");
-const loadScriptBtn   = $("load-script-btn");
+const scriptNameEl = $("script-name");
+const loadScriptBtn = $("load-script-btn");
 const scriptFileInput = $("script-file-input");
-const runBtn          = $("run-btn");
+const runBtn = $("run-btn");
 const progressSection = $("progress-section");
-const progressText    = $("progress-text");
-const resultsSection  = $("results-section");
-const saveBtn         = $("save-btn");
-const errorMsg        = $("error-msg");
-const statusMsg       = $("status-msg");
+const progressText = $("progress-text");
+const resultsSection = $("results-section");
+const saveBtn = $("save-btn");
+const errorMsg = $("error-msg");
+const statusMsg = $("status-msg");
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let currentScript = null;   // parsed eval script object
-let transcripts   = [];     // [{target, turns:[{prompt,response}], error?}]
+let currentScript = null; // parsed eval script object
+let transcripts = []; // [{target, turns:[{prompt,response}], error?}]
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
@@ -47,12 +47,12 @@ function init() {
 
 async function loadDefaultScript() {
   try {
-    const url = chrome.runtime.getURL("sample-evals/strawberry.json");
+    const url = chrome.runtime.getURL("sample-evals/strawbery.json");
     const res = await fetch(url);
     const parsed = await res.json();
     if (!parsed.turns || !Array.isArray(parsed.turns)) return;
     currentScript = parsed;
-    scriptNameEl.textContent = parsed.name || "strawberry.json";
+    scriptNameEl.textContent = parsed.name || "strawbery.json";
     scriptNameEl.className = "script-name loaded";
     runBtn.disabled = false;
   } catch (_) {
@@ -134,7 +134,9 @@ async function onRunClick() {
   progressText.textContent = "Starting…";
 
   resultsSection.innerHTML = "";
-  targets.forEach((t) => resultsSection.appendChild(buildTargetCard(t, "running")));
+  targets.forEach((t) =>
+    resultsSection.appendChild(buildTargetCard(t, "running")),
+  );
   resultsSection.classList.remove("hidden");
 
   try {
@@ -143,7 +145,7 @@ async function onRunClick() {
       targets,
       currentScript.turns,
       onProgress,
-      { closeTabs, onTargetDone: (r) => fillTargetCard(r) }
+      { closeTabs, onTargetDone: (r) => fillTargetCard(r) },
     );
     transcripts = results;
   } catch (err) {
@@ -161,10 +163,20 @@ async function onRunClick() {
 function onProgress({ target, status, turnIndex }) {
   const total = currentScript?.turns.length ?? "?";
   switch (status) {
-    case "opening": progressText.textContent = `Opening ${target.name}…`; break;
-    case "running": progressText.textContent = `${target.name} — Turn ${turnIndex + 1} / ${total}…`; break;
-    case "done":    progressText.textContent = `${target.name} complete.`; break;
-    case "error":   progressText.textContent = `${target.name} — error`; break;
+    case "opening":
+      progressText.textContent = `Opening ${target.name}…`;
+      break;
+    case "running":
+      progressText.textContent = `${target.name} — Turn ${
+        turnIndex + 1
+      } / ${total}…`;
+      break;
+    case "done":
+      progressText.textContent = `${target.name} complete.`;
+      break;
+    case "error":
+      progressText.textContent = `${target.name} — error`;
+      break;
   }
 }
 
@@ -193,22 +205,26 @@ function buildTargetCard(target, status) {
 }
 
 function fillTargetCard(result) {
-  const target   = result.target;
+  const target = result.target;
   const statusEl = $(`target-status-${target.id}`);
-  const turnsEl  = $(`target-turns-${target.id}`);
+  const turnsEl = $(`target-turns-${target.id}`);
   if (!statusEl || !turnsEl) return;
 
   if (result.error) {
     statusEl.className = "target-status error";
     statusEl.textContent = "Error";
-    turnsEl.innerHTML = `<div class="error-text">${escHtml(result.error)}</div>`;
+    turnsEl.innerHTML = `<div class="error-text">${escHtml(
+      result.error,
+    )}</div>`;
     return;
   }
 
   statusEl.className = "target-status done";
-  statusEl.textContent = "✓ Done";
+  statusEl.textContent = result.model ? `✓ ${result.model}` : "✓ Done";
   turnsEl.innerHTML = "";
-  result.turns.forEach((turn, i) => turnsEl.appendChild(buildTurnBlock(target, turn, i)));
+  result.turns.forEach((turn, i) =>
+    turnsEl.appendChild(buildTurnBlock(target, turn, i)),
+  );
 }
 
 function buildTurnBlock(target, turn, turnIndex) {
@@ -231,11 +247,20 @@ function renderMarkdown(text) {
 
   const lines = text.split("\n");
   let html = "";
-  let inOl = false, inUl = false, inCode = false, codeBuf = "";
+  let inOl = false,
+    inUl = false,
+    inCode = false,
+    codeBuf = "";
 
   const closeList = () => {
-    if (inOl) { html += "</ol>"; inOl = false; }
-    if (inUl) { html += "</ul>"; inUl = false; }
+    if (inOl) {
+      html += "</ol>";
+      inOl = false;
+    }
+    if (inUl) {
+      html += "</ul>";
+      inUl = false;
+    }
   };
 
   const inline = (s) =>
@@ -250,22 +275,60 @@ function renderMarkdown(text) {
       if (inCode) {
         closeList();
         html += `<pre><code>${escHtml(codeBuf)}</code></pre>`;
-        codeBuf = ""; inCode = false;
-      } else { closeList(); inCode = true; }
+        codeBuf = "";
+        inCode = false;
+      } else {
+        closeList();
+        inCode = true;
+      }
       continue;
     }
-    if (inCode) { codeBuf += (codeBuf ? "\n" : "") + line; continue; }
+    if (inCode) {
+      codeBuf += (codeBuf ? "\n" : "") + line;
+      continue;
+    }
 
     const hMatch = line.match(/^(#{1,4})\s+(.*)/);
-    if (hMatch) { closeList(); const lv = Math.min(hMatch[1].length + 3, 6); html += `<h${lv}>${inline(hMatch[2])}</h${lv}>`; continue; }
+    if (hMatch) {
+      closeList();
+      const lv = Math.min(hMatch[1].length + 3, 6);
+      html += `<h${lv}>${inline(hMatch[2])}</h${lv}>`;
+      continue;
+    }
 
     const olMatch = line.match(/^\d+\.\s+(.*)/);
-    if (olMatch) { if (inUl) { html += "</ul>"; inUl = false; } if (!inOl) { html += "<ol>"; inOl = true; } html += `<li>${inline(olMatch[1])}</li>`; continue; }
+    if (olMatch) {
+      if (inUl) {
+        html += "</ul>";
+        inUl = false;
+      }
+      if (!inOl) {
+        html += "<ol>";
+        inOl = true;
+      }
+      html += `<li>${inline(olMatch[1])}</li>`;
+      continue;
+    }
 
     const ulMatch = line.match(/^[-*•]\s+(.*)/);
-    if (ulMatch) { if (inOl) { html += "</ol>"; inOl = false; } if (!inUl) { html += "<ul>"; inUl = true; } html += `<li>${inline(ulMatch[1])}</li>`; continue; }
+    if (ulMatch) {
+      if (inOl) {
+        html += "</ol>";
+        inOl = false;
+      }
+      if (!inUl) {
+        html += "<ul>";
+        inUl = true;
+      }
+      html += `<li>${inline(ulMatch[1])}</li>`;
+      continue;
+    }
 
-    if (line.trim() === "") { closeList(); html += "<br>"; continue; }
+    if (line.trim() === "") {
+      closeList();
+      html += "<br>";
+      continue;
+    }
 
     closeList();
     html += inline(line) + "<br>";
@@ -280,26 +343,28 @@ function renderMarkdown(text) {
 
 function saveTranscript() {
   const data = {
-    script_id:       currentScript?.id    ?? null,
-    script_name:     currentScript?.name  ?? null,
-    run_timestamp:   new Date().toISOString(),
+    script_id: currentScript?.id ?? null,
+    script_name: currentScript?.name ?? null,
+    run_timestamp: new Date().toISOString(),
     targets: transcripts.map((r) => ({
-      id:            r.target.id,
-      name:          r.target.name,
-      model_version: null,   // populated in future when visible in UI
-      error:         r.error ?? null,
+      id: r.target.id,
+      name: r.target.name,
+      model_version: r.model ?? null,
+      error: r.error ?? null,
       turns: r.turns.map((t) => ({
         timestamp: new Date().toISOString(),
-        prompt:    t.prompt,
-        response:  t.response,
+        prompt: t.prompt,
+        response: t.response,
       })),
     })),
   };
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
   a.download = `eval-${currentScript?.id ?? "transcript"}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
@@ -308,7 +373,9 @@ function saveTranscript() {
 // ── Editor modal ─────────────────────────────────────────────────────────────
 
 function slugify(str) {
-  return str.trim().toLowerCase()
+  return str
+    .trim()
+    .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -367,27 +434,35 @@ function renumberTurns() {
 
 async function commitEditor() {
   const name = $("editor-name").value.trim();
-  const id   = $("editor-id").value.trim() || slugify(name);
+  const id = $("editor-id").value.trim() || slugify(name);
   const errEl = $("editor-err");
   errEl.textContent = "";
 
-  if (!name) { errEl.textContent = "Name is required."; return; }
+  if (!name) {
+    errEl.textContent = "Name is required.";
+    return;
+  }
 
   const prompts = [...$("editor-turns").querySelectorAll("textarea")]
     .map((ta) => ta.value.trim())
     .filter(Boolean);
 
-  if (!prompts.length) { errEl.textContent = "Add at least one turn."; return; }
+  if (!prompts.length) {
+    errEl.textContent = "Add at least one turn.";
+    return;
+  }
 
   const script = { id, name, turns: prompts.map((p) => ({ prompt: p })) };
-  const json   = JSON.stringify(script, null, 2);
-  const blob   = new Blob([json], { type: "application/json" });
+  const json = JSON.stringify(script, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
 
   try {
     const fh = await window.showSaveFilePicker({
       suggestedName: `${id}.json`,
       startIn: "documents",
-      types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+      types: [
+        { description: "JSON", accept: { "application/json": [".json"] } },
+      ],
     });
     const w = await fh.createWritable();
     await w.write(blob);
@@ -397,7 +472,9 @@ async function commitEditor() {
     // Fallback: blob download
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `${id}.json`; a.click();
+    a.href = url;
+    a.download = `${id}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -418,10 +495,21 @@ function escHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
-function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.remove("hidden"); }
-function clearError()   { errorMsg.textContent = ""; errorMsg.classList.add("hidden"); }
-function showStatus(msg){ statusMsg.textContent = msg; statusMsg.classList.remove("hidden"); }
-function hideStatus()   { statusMsg.classList.add("hidden"); }
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.classList.remove("hidden");
+}
+function clearError() {
+  errorMsg.textContent = "";
+  errorMsg.classList.add("hidden");
+}
+function showStatus(msg) {
+  statusMsg.textContent = msg;
+  statusMsg.classList.remove("hidden");
+}
+function hideStatus() {
+  statusMsg.classList.add("hidden");
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
