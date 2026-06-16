@@ -6,6 +6,12 @@ A Chrome extension for running structured, multi-turn evaluations against multip
 
 ---
 
+## Why evaluate in the browser?
+
+Most third-party AI model evaluations are run using APIs – but research shows that APIs do not always behave the same as the chatbot interfaces that most people use ([Kirgis et al.](https://arxiv.org/abs/2604.06188); [AI Forensics](https://aiforensics.org/work/chatbots-moderation)). As AI companies move towards model routers (e.g. [OpenAI](https://openai.com/index/gpt-5-system-card/)) the differences between application and API will continue. Strawbery runs scripted, multi-turn conversations against deployed chatbot interfaces, logged out as a default user sees them, and exports full transcripts.
+
+---
+
 ## Terms of Use and Ethics Notice
 
 This project is intended for personal research, evaluation, and educational use. It automates browser interactions with third-party chatbot websites, including services operated by OpenAI, Google, and Mistral AI. Those services have their own terms, policies, rate limits, acceptable-use rules, and technical protections.
@@ -82,19 +88,19 @@ The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatb
 }
 ```
 
-| Field            | Required | Description                                                                 |
-| ---------------- | -------- | --------------------------------------------------------------------------- |
-| `schema_version` | No       | Format identifier. Current value is `strawbery.eval.v1`                     |
-| `id`             | No       | Short identifier used in the exported filename                              |
-| `name`           | No       | Human-readable name shown in the sidepanel                                  |
-| `description`    | No       | Free-text description of the eval                                           |
-| `tags`           | No       | Labels for filtering or analysis                                            |
-| `metadata`       | No       | Eval-level metadata copied into exported transcripts                        |
-| `samples`        | Yes      | Independent conversations to run against each selected target               |
-| `samples[].id`   | No       | Stable sample identifier                                                    |
-| `samples[].input`| Yes      | A string or an array of chat messages with `role` and `content`             |
-| `samples[].target` | No     | Expected answer, rubric, or grading guidance                                |
-| `samples[].metadata` | No   | Sample-level metadata copied into exported transcripts                      |
+| Field                | Required | Description                                                     |
+| -------------------- | -------- | --------------------------------------------------------------- |
+| `schema_version`     | No       | Format identifier. Current value is `strawbery.eval.v1`         |
+| `id`                 | No       | Short identifier used in the exported filename                  |
+| `name`               | No       | Human-readable name shown in the sidepanel                      |
+| `description`        | No       | Free-text description of the eval                               |
+| `tags`               | No       | Labels for filtering or analysis                                |
+| `metadata`           | No       | Eval-level metadata copied into exported transcripts            |
+| `samples`            | Yes      | Independent conversations to run against each selected target   |
+| `samples[].id`       | No       | Stable sample identifier                                        |
+| `samples[].input`    | Yes      | A string or an array of chat messages with `role` and `content` |
+| `samples[].target`   | No       | Expected answer, rubric, or grading guidance                    |
+| `samples[].metadata` | No       | Sample-level metadata copied into exported transcripts          |
 
 Each sample runs as a separate conversation for each selected target. Multi-turn samples maintain conversation context within that sample. The `input` and `target` names are intentionally close to Inspect AI's `Sample` format; `target` maps cleanly to DeepEval's `expected_output`, and `input` can be adapted into promptfoo `tests[].vars`.
 
@@ -195,11 +201,11 @@ Exported as JSON:
 
 All three targets work without login, with one caveat for Gemini.
 
-| Name            | URL                   | Login                                                |
-| --------------- | --------------------- | ---------------------------------------------------- |
-| ChatGPT         | chatgpt.com           | Not required (free tier)                             |
+| Name            | URL                   | Login                                                                   |
+| --------------- | --------------------- | ----------------------------------------------------------------------- |
+| ChatGPT         | chatgpt.com           | Not required (free tier)                                                |
 | Gemini          | gemini.google.com/app | Not required when already on `/app`; otherwise redirects to Google auth |
-| Mistral Le Chat | chat.mistral.ai       | Not required (anonymous access)                      |
+| Mistral Le Chat | chat.mistral.ai       | Not required (anonymous access)                                         |
 
 ---
 
