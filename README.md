@@ -64,7 +64,7 @@ Exported as JSON:
     {
       "id": "string",
       "name": "string",
-      "model_version": null,
+      "model_version": "string or null",
       "error": "string or null",
       "turns": [
         {
@@ -78,19 +78,19 @@ Exported as JSON:
 }
 ```
 
-`model_version` is reserved for future use (automatic detection from the UI) and is always `null` in the current version.
+`model_version` is detected automatically from each target's UI when available. It falls back to a static label where the model name is not exposed (e.g. logged-out ChatGPT reports `"default"`), and is `null` if detection fails.
 
 ---
 
 ## Targets
 
-All three targets work without login.
+All three targets work without login, with one caveat for Gemini.
 
-| Name            | URL                   |
-| --------------- | --------------------- |
-| ChatGPT         | chatgpt.com           |
-| Gemini          | gemini.google.com/app |
-| Mistral Le Chat | chat.mistral.ai       |
+| Name            | URL                   | Login                                                |
+| --------------- | --------------------- | ---------------------------------------------------- |
+| ChatGPT         | chatgpt.com           | Not required (free tier)                             |
+| Gemini          | gemini.google.com/app | Not required when already on `/app`; otherwise redirects to Google auth |
+| Mistral Le Chat | chat.mistral.ai       | Not required (anonymous access)                      |
 
 ---
 
@@ -150,4 +150,4 @@ npm test
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

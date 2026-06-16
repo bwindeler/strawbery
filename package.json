@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "description": "Batch evaluation harness for multi-target AI chatbot research",
   "private": true,
+  "license": "MIT",
+  "author": "Ben Windeler",
   "scripts": {
     "test": "node --test"
   }
