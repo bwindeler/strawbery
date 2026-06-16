@@ -6,6 +6,24 @@ A Chrome extension for running structured, multi-turn evaluations against multip
 
 ---
 
+## Terms of Use and Ethics Notice
+
+This project is intended for personal research, evaluation, and educational use. It automates browser interactions with third-party chatbot websites, including services operated by OpenAI, Google, and Mistral AI. Those services have their own terms, policies, rate limits, acceptable-use rules, and technical protections.
+
+Before using this tool, you are responsible for reviewing and complying with the terms and policies of each service you target. Automated data entry, automated collection of model outputs, scraping, high-volume testing, bypassing access controls, or use of multiple accounts may violate those terms or result in rate limiting, account suspension, loss of access, or other consequences.
+
+Do not use this project to:
+
+- bypass paywalls, login requirements, rate limits, CAPTCHAs, safety systems, or other access controls;
+- collect, store, or redistribute third-party content unless you have the right to do so;
+- submit personal, confidential, sensitive, proprietary, or regulated data unless you have permission and an appropriate legal basis;
+- misrepresent automated outputs as human-generated;
+- run evaluations at a scale or frequency that could burden or disrupt third-party services.
+
+The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatbot services supported by this project. This software is provided as-is, without any warranty. You use it at your own risk and are solely responsible for your use of the tool, the prompts you submit, the outputs you collect, and your compliance with applicable laws and third-party terms.
+
+---
+
 ## Installation
 
 1. Clone or download this repository.
