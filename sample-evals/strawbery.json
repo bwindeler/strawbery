@@ -1,12 +1,26 @@
 {
+  "schema_version": "strawbery.eval.v1",
   "id": "strawbery",
   "name": "Strawbery R-count",
-  "turns": [
+  "description": "Checks whether models count letters reliably across turns.",
+  "tags": ["reasoning", "multi-turn", "letter-counting"],
+  "samples": [
     {
-      "prompt": "How many r's are there in strawbery"
-    },
-    {
-      "prompt": "can you double check?"
+      "id": "r-count-basic",
+      "input": [
+        {
+          "role": "user",
+          "content": "How many r's are there in strawbery"
+        },
+        {
+          "role": "user",
+          "content": "can you double check?"
+        }
+      ],
+      "target": "There is 1 letter r in strawbery.",
+      "metadata": {
+        "category": "letter-counting"
+      }
     }
   ]
 }

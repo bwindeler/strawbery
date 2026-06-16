@@ -27,8 +27,9 @@ const statusMsg = $("status-msg");
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let currentScript = null; // parsed eval script object
-let transcripts = []; // [{target, turns:[{prompt,response}], error?}]
+let currentScript = null; // normalized eval script object
+let transcripts = []; // [{target, samples:[{messages,turns}], error?}]
+let currentRun = null;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
@@ -51,9 +52,8 @@ async function loadDefaultScript() {
     const url = chrome.runtime.getURL("sample-evals/strawbery.json");
     const res = await fetch(url);
     const parsed = await res.json();
-    if (!parsed.turns || !Array.isArray(parsed.turns)) return;
-    currentScript = parsed;
-    scriptNameEl.textContent = parsed.name || "strawbery.json";
+    currentScript = normalizeEvalScript(parsed);
+    scriptNameEl.textContent = currentScript.name || "strawbery.json";
     scriptNameEl.className = "script-name loaded";
     runBtn.disabled = false;
   } catch (_) {
@@ -71,11 +71,8 @@ function onFileSelected(e) {
   reader.onload = (ev) => {
     try {
       const parsed = JSON.parse(ev.target.result);
-      if (!parsed.turns || !Array.isArray(parsed.turns)) {
-        throw new Error('Script must have a "turns" array.');
-      }
-      currentScript = parsed;
-      scriptNameEl.textContent = parsed.name || file.name;
+      currentScript = normalizeEvalScript(parsed);
+      scriptNameEl.textContent = currentScript.name || file.name;
       scriptNameEl.className = "script-name loaded";
       runBtn.disabled = false;
       clearError();
@@ -128,6 +125,15 @@ async function onRunClick() {
   if (!targets.length) return showError("Check at least one target.");
 
   transcripts = [];
+  const runStartedAt = new Date();
+  currentRun = {
+    id: `run_${runStartedAt.toISOString().replace(/[:.]/g, "-")}`,
+    eval_id: currentScript.id ?? null,
+    eval_name: currentScript.name ?? null,
+    started_at: runStartedAt.toISOString(),
+    completed_at: null,
+    duration_ms: null,
+  };
 
   runBtn.disabled = true;
   saveBtn.classList.add("hidden");
@@ -144,7 +150,7 @@ async function onRunClick() {
     const closeTabs = document.getElementById("close-tabs-toggle").checked;
     const results = await runScriptOnAllTargets(
       targets,
-      currentScript.turns,
+      currentScript.samples,
       onProgress,
       { closeTabs, onTargetDone: (r) => fillTargetCard(r) },
     );
@@ -152,6 +158,11 @@ async function onRunClick() {
   } catch (err) {
     showError(err.message);
   } finally {
+    if (currentRun) {
+      const completedAt = new Date();
+      currentRun.completed_at = completedAt.toISOString();
+      currentRun.duration_ms = completedAt.getTime() - runStartedAt.getTime();
+    }
     progressSection.classList.add("hidden");
     runBtn.disabled = false;
   }
@@ -161,14 +172,15 @@ async function onRunClick() {
 
 // ── Progress callback ─────────────────────────────────────────────────────────
 
-function onProgress({ target, status, turnIndex }) {
-  const total = currentScript?.turns.length ?? "?";
+function onProgress({ target, sample, status, turnIndex }) {
+  const sampleLabel = sample?.id ? ` / ${sample.id}` : "";
+  const total = sample?.input?.filter((message) => message.role === "user").length ?? "?";
   switch (status) {
     case "opening":
-      progressText.textContent = `Opening ${target.name}…`;
+      progressText.textContent = `Opening ${target.name}${sampleLabel}…`;
       break;
     case "running":
-      progressText.textContent = `${target.name} — Turn ${
+      progressText.textContent = `${target.name}${sampleLabel} — Turn ${
         turnIndex + 1
       } / ${total}…`;
       break;
@@ -211,7 +223,7 @@ function fillTargetCard(result) {
   const turnsEl = $(`target-turns-${target.id}`);
   if (!statusEl || !turnsEl) return;
 
-  if (result.error) {
+  if (result.status === "error") {
     statusEl.className = "target-status error";
     statusEl.textContent = "Error";
     turnsEl.innerHTML = `<div class="error-text">${escHtml(
@@ -221,11 +233,33 @@ function fillTargetCard(result) {
   }
 
   statusEl.className = "target-status done";
-  statusEl.textContent = result.model ? `✓ ${result.model}` : "✓ Done";
+  statusEl.textContent = result.error
+    ? "✓ Partial"
+    : result.model
+      ? `✓ ${result.model}`
+      : "✓ Done";
   turnsEl.innerHTML = "";
-  result.turns.forEach((turn, i) =>
-    turnsEl.appendChild(buildTurnBlock(target, turn, i)),
-  );
+  const samples = result.samples?.length
+    ? result.samples
+    : [{ sample: { id: null }, turns: result.turns ?? [], error: result.error }];
+  samples.forEach((sampleResult, sampleIndex) => {
+    if (samples.length > 1 || sampleResult.sample?.id) {
+      const label = document.createElement("div");
+      label.className = "turn-number";
+      label.textContent = `Sample ${sampleResult.sample?.id ?? sampleIndex + 1}`;
+      turnsEl.appendChild(label);
+    }
+    if (sampleResult.error) {
+      const error = document.createElement("div");
+      error.className = "error-text";
+      error.textContent = sampleResult.error;
+      turnsEl.appendChild(error);
+      return;
+    }
+    sampleResult.turns.forEach((turn, i) =>
+      turnsEl.appendChild(buildTurnBlock(target, turn, i)),
+    );
+  });
 }
 
 function buildTurnBlock(target, turn, turnIndex) {
@@ -343,21 +377,73 @@ function renderMarkdown(text) {
 // ── Save transcript ───────────────────────────────────────────────────────────
 
 function saveTranscript() {
+  const manifest = chrome.runtime.getManifest?.() ?? {};
   const data = {
-    script_id: currentScript?.id ?? null,
-    script_name: currentScript?.name ?? null,
-    run_timestamp: new Date().toISOString(),
-    targets: transcripts.map((r) => ({
-      id: r.target.id,
-      name: r.target.name,
-      model_version: r.model ?? null,
-      error: r.error ?? null,
-      turns: r.turns.map((t) => ({
-        timestamp: new Date().toISOString(),
-        prompt: t.prompt,
-        response: t.response,
-      })),
-    })),
+    schema_version: "strawbery.run.v1",
+    run: currentRun ?? {
+      id: `run_${new Date().toISOString().replace(/[:.]/g, "-")}`,
+      eval_id: currentScript?.id ?? null,
+      eval_name: currentScript?.name ?? null,
+      started_at: null,
+      completed_at: new Date().toISOString(),
+      duration_ms: null,
+    },
+    eval: {
+      schema_version: currentScript?.schema_version ?? null,
+      id: currentScript?.id ?? null,
+      name: currentScript?.name ?? null,
+      description: currentScript?.description ?? null,
+      tags: currentScript?.tags ?? [],
+      metadata: currentScript?.metadata ?? {},
+    },
+    environment: {
+      extension_version: manifest.version ?? null,
+      user_agent: navigator.userAgent,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
+    },
+    results: transcripts.flatMap((r) => {
+      const sampleResults = r.samples?.length
+        ? r.samples
+        : [
+            {
+              sample: null,
+              final_url: null,
+              model: r.model ?? null,
+              status: r.status ?? "error",
+              started_at: r.started_at ?? null,
+              completed_at: r.completed_at ?? null,
+              duration_ms: r.duration_ms ?? null,
+              messages: [],
+              turns: r.turns ?? [],
+              error: r.error ?? null,
+            },
+          ];
+
+      return sampleResults.map((sampleResult) => ({
+        sample_id: sampleResult.sample?.id ?? null,
+        target: {
+          id: r.target.id,
+          name: r.target.name,
+          url: r.target.url,
+          final_url: sampleResult.final_url ?? null,
+          model_version: sampleResult.model ?? r.model ?? null,
+          metadata: r.target.metadata ?? {},
+        },
+        status: sampleResult.status ?? (sampleResult.error ? "error" : "completed"),
+        started_at: sampleResult.started_at ?? null,
+        completed_at: sampleResult.completed_at ?? null,
+        duration_ms: sampleResult.duration_ms ?? null,
+        messages: sampleResult.messages ?? [],
+        turns: sampleResult.turns ?? [],
+        target_output: (sampleResult.messages ?? [])
+          .filter((message) => message.role === "assistant")
+          .map((message) => message.content)
+          .join("\n\n"),
+        expected_output: sampleResult.sample?.target ?? null,
+        metadata: sampleResult.sample?.metadata ?? {},
+        error: sampleResult.error ?? null,
+      }));
+    }),
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -369,6 +455,100 @@ function saveTranscript() {
   a.download = `eval-${currentScript?.id ?? "transcript"}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── Eval schema ──────────────────────────────────────────────────────────────
+
+function normalizeEvalScript(script) {
+  if (!script || typeof script !== "object" || Array.isArray(script)) {
+    throw new Error("Script must be a JSON object.");
+  }
+
+  const samples = Array.isArray(script.samples)
+    ? script.samples.map(normalizeSample)
+    : legacyTurnsToSamples(script.turns);
+
+  if (!samples.length) {
+    throw new Error('Script must include a non-empty "samples" array or legacy "turns" array.');
+  }
+
+  return {
+    schema_version: script.schema_version ?? "strawbery.eval.v1",
+    id: script.id ?? null,
+    name: script.name ?? null,
+    description: script.description ?? null,
+    tags: Array.isArray(script.tags) ? script.tags : [],
+    metadata: script.metadata && typeof script.metadata === "object" ? script.metadata : {},
+    samples,
+  };
+}
+
+function legacyTurnsToSamples(turns) {
+  if (!Array.isArray(turns)) {
+    throw new Error('Script must include a "samples" array or legacy "turns" array.');
+  }
+  return [
+    normalizeSample({
+      id: "default",
+      input: turns.map((turn) => ({
+        role: "user",
+        content: turn?.prompt ?? turn?.content ?? "",
+      })),
+    }),
+  ];
+}
+
+function normalizeSample(sample, index = 0) {
+  if (!sample || typeof sample !== "object" || Array.isArray(sample)) {
+    throw new Error("Each sample must be an object.");
+  }
+
+  const input = normalizeInput(sample.input);
+  const userMessages = input.filter((message) => message.role === "user");
+  if (!userMessages.length) {
+    throw new Error("Each sample must include at least one user input message.");
+  }
+
+  return {
+    id: sample.id ?? `sample-${index + 1}`,
+    input,
+    target: sample.target ?? sample.expected_output ?? null,
+    metadata: sample.metadata && typeof sample.metadata === "object" ? sample.metadata : {},
+  };
+}
+
+function normalizeInput(input) {
+  if (typeof input === "string") {
+    return [{ role: "user", content: input }];
+  }
+
+  if (!Array.isArray(input)) {
+    throw new Error('Each sample "input" must be a string or array of chat messages.');
+  }
+
+  return input.map((message) => {
+    if (typeof message === "string") {
+      return { role: "user", content: message };
+    }
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      throw new Error("Each input message must be a string or object.");
+    }
+    const role = message.role ?? "user";
+    if (!["system", "user", "assistant", "tool"].includes(role)) {
+      throw new Error(`Unsupported message role: ${role}`);
+    }
+    if (typeof message.content !== "string") {
+      throw new Error("Each input message must include string content.");
+    }
+    return {
+      role,
+      content: message.content,
+      ...(message.name ? { name: message.name } : {}),
+      ...(message.metadata && typeof message.metadata === "object"
+        ? { metadata: message.metadata }
+        : {}),
+    };
+  });
 }
 
 // ── Editor modal ─────────────────────────────────────────────────────────────
@@ -453,7 +633,17 @@ async function commitEditor() {
     return;
   }
 
-  const script = { id, name, turns: prompts.map((p) => ({ prompt: p })) };
+  const script = {
+    schema_version: "strawbery.eval.v1",
+    id,
+    name,
+    samples: [
+      {
+        id: "default",
+        input: prompts.map((p) => ({ role: "user", content: p })),
+      },
+    ],
+  };
   const json = JSON.stringify(script, null, 2);
   const blob = new Blob([json], { type: "application/json" });
 
@@ -480,7 +670,7 @@ async function commitEditor() {
   }
 
   // Load the new script directly into the sidebar.
-  currentScript = script;
+  currentScript = normalizeEvalScript(script);
   scriptNameEl.textContent = name;
   scriptNameEl.className = "script-name loaded";
   runBtn.disabled = false;
@@ -520,5 +710,5 @@ if (typeof document !== "undefined") init();
 // Expose pure helpers for unit testing under Node. No-op in the browser, where
 // `module` is undefined.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { renderMarkdown, escHtml, slugify };
+  module.exports = { renderMarkdown, escHtml, slugify, normalizeEvalScript };
 }

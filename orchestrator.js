@@ -4,12 +4,16 @@
  * All chrome.* APIs are available in extension page context.
  *
  * Exported functions (globals, used by sidepanel.js):
- *   runScriptOnAllTargets(targets, turns, onProgress) → Promise<transcript[]>
- *   runScriptOnTarget(target, turns, onProgress)      → Promise<transcript>
+ *   runScriptOnAllTargets(targets, samples, onProgress) → Promise<transcript[]>
+ *   runScriptOnTarget(target, samples, onProgress)      → Promise<transcript>
  */
 
 // Extra wait after tab status=complete — gives site JS time to initialize.
 const TAB_SETTLE_MS = 2000;
+
+function isoNow() {
+  return new Date().toISOString();
+}
 
 // ── Tab lifecycle ─────────────────────────────────────────────────────────────
 
@@ -89,7 +93,15 @@ async function runTurnInTab(tabId, prompt, selectorOpts, isFirstTurn = false) {
 
 // ── Target-level runner ───────────────────────────────────────────────────────
 
-async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false } = {}) {
+async function getTabUrl(tabId) {
+  try {
+    return (await chrome.tabs.get(tabId))?.url ?? null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function runSampleOnTarget(target, sample, onProgress, { closeTabs = false } = {}) {
   const selectorOpts = {
     inputSelector:    target.inputSelector    ?? null,
     sendSelector:     target.sendSelector     ?? null,
@@ -97,11 +109,19 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
     stopSelector:     target.stopSelector     ?? null,
   };
 
-  onProgress?.({ target, status: "opening", turnIndex: 0 });
+  onProgress?.({ target, sample, status: "opening", turnIndex: 0 });
 
   let tabId = null;
+  const completedTurns = [];
+  const messages = [];
+  let finalUrl = null;
+  let model = null;
+  const startedAt = isoNow();
+  const startedMs = Date.now();
+
   try {
     tabId = await openTabAndWaitForLoad(target.url);
+    finalUrl = await getTabUrl(tabId);
     await injectContentScript(tabId);
 
     const modelResults = await chrome.scripting.executeScript({
@@ -112,43 +132,121 @@ async function runScriptOnTarget(target, turns, onProgress, { closeTabs = false 
       },
       args: [target.modelSelector ?? null, target.modelExtractPattern ?? null],
     });
-    const model = modelResults[0]?.result ?? target.modelDefault ?? null;
+    model = modelResults[0]?.result ?? target.modelDefault ?? null;
 
-    const completedTurns = [];
+    const userTurns = sample.input.filter((message) => message.role === "user");
 
-    for (let i = 0; i < turns.length; i++) {
-      onProgress?.({ target, status: "running", turnIndex: i });
-      let response = await runTurnInTab(tabId, turns[i].prompt, selectorOpts, i === 0);
+    for (let i = 0; i < userTurns.length; i++) {
+      const prompt = userTurns[i].content;
+      onProgress?.({ target, sample, status: "running", turnIndex: i });
+      const promptAt = isoNow();
+      const responseStartedMs = Date.now();
+      let response = await runTurnInTab(tabId, prompt, selectorOpts, i === 0);
       // Apply per-target post-processing (e.g. stripping timestamps).
       // responseClean is a plain function in targets.js, not serialisable to JSON,
       // so we apply it here in the orchestrator after the script returns.
       if (typeof target.responseClean === "function" && response) {
         response = target.responseClean(response);
       }
-      completedTurns.push({ prompt: turns[i].prompt, response });
+      const responseAt = isoNow();
+      const durationMs = Date.now() - responseStartedMs;
+      messages.push({ role: "user", content: prompt, timestamp: promptAt });
+      messages.push({
+        role: "assistant",
+        content: response,
+        timestamp: responseAt,
+        duration_ms: durationMs,
+      });
+      completedTurns.push({
+        prompt,
+        response,
+        prompt_timestamp: promptAt,
+        response_timestamp: responseAt,
+        duration_ms: durationMs,
+      });
     }
 
-    return { target, turns: completedTurns, model };
+    const completedAt = isoNow();
+    return {
+      sample,
+      turns: completedTurns,
+      messages,
+      model,
+      final_url: finalUrl,
+      status: "completed",
+      started_at: startedAt,
+      completed_at: completedAt,
+      duration_ms: Date.now() - startedMs,
+      error: null,
+    };
+  } catch (err) {
+    const completedAt = isoNow();
+    return {
+      sample,
+      turns: completedTurns ?? [],
+      messages,
+      model,
+      final_url: finalUrl ?? (tabId == null ? null : await getTabUrl(tabId)),
+      status: "error",
+      started_at: startedAt,
+      completed_at: completedAt,
+      duration_ms: Date.now() - startedMs,
+      error: err.message,
+    };
   } finally {
     if (tabId != null && closeTabs) chrome.tabs.remove(tabId).catch(() => {});
   }
 }
 
+async function runScriptOnTarget(target, samples, onProgress, opts = {}) {
+  const targetStartedAt = isoNow();
+  const targetStartedMs = Date.now();
+  const sampleResults = [];
+
+  for (const sample of samples) {
+    const sampleResult = await runSampleOnTarget(target, sample, onProgress, opts);
+    sampleResults.push(sampleResult);
+  }
+
+  const error = sampleResults.find((sample) => sample.error)?.error ?? null;
+  const lastModel = [...sampleResults].reverse().find((sample) => sample.model)?.model ?? null;
+  const turns = sampleResults.flatMap((sample) => sample.turns);
+
+  return {
+    target,
+    samples: sampleResults,
+    turns,
+    model: lastModel,
+    status: error ? "partial_error" : "completed",
+    started_at: targetStartedAt,
+    completed_at: isoNow(),
+    duration_ms: Date.now() - targetStartedMs,
+    error,
+  };
+}
+
 // ── All-targets runner ────────────────────────────────────────────────────────
 
-async function runScriptOnAllTargets(targets, turns, onProgress, opts = {}) {
+async function runScriptOnAllTargets(targets, samples, onProgress, opts = {}) {
   const { onTargetDone, ...runOpts } = opts;
   const results = [];
 
   for (const target of targets) {
     try {
-      const result = await runScriptOnTarget(target, turns, onProgress, runOpts);
-      onProgress?.({ target, status: "done", turnIndex: turns.length - 1 });
+      const result = await runScriptOnTarget(target, samples, onProgress, runOpts);
+      onProgress?.({ target, status: "done", turnIndex: 0 });
       results.push(result);
       onTargetDone?.(result);
     } catch (err) {
       onProgress?.({ target, status: "error", turnIndex: 0, error: err.message });
-      const result = { target, turns: [], error: err.message };
+      const result = {
+        target,
+        samples: [],
+        turns: [],
+        model: null,
+        status: "error",
+        error: err.message,
+      };
       results.push(result);
       onTargetDone?.(result);
     }

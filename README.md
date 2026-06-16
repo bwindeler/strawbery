@@ -52,22 +52,64 @@ The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatb
 
 ```json
 {
+  "schema_version": "strawbery.eval.v1",
   "id": "my-eval-id",
   "name": "My Eval Name",
+  "description": "Optional description of what this eval measures.",
+  "tags": ["reasoning", "multi-turn"],
+  "metadata": {
+    "author": "Researcher Name"
+  },
+  "samples": [
+    {
+      "id": "sample-1",
+      "input": [
+        {
+          "role": "user",
+          "content": "First prompt text"
+        },
+        {
+          "role": "user",
+          "content": "Second prompt text"
+        }
+      ],
+      "target": "Optional expected answer or grading guidance.",
+      "metadata": {
+        "category": "optional-analysis-label"
+      }
+    }
+  ]
+}
+```
+
+| Field            | Required | Description                                                                 |
+| ---------------- | -------- | --------------------------------------------------------------------------- |
+| `schema_version` | No       | Format identifier. Current value is `strawbery.eval.v1`                     |
+| `id`             | No       | Short identifier used in the exported filename                              |
+| `name`           | No       | Human-readable name shown in the sidepanel                                  |
+| `description`    | No       | Free-text description of the eval                                           |
+| `tags`           | No       | Labels for filtering or analysis                                            |
+| `metadata`       | No       | Eval-level metadata copied into exported transcripts                        |
+| `samples`        | Yes      | Independent conversations to run against each selected target               |
+| `samples[].id`   | No       | Stable sample identifier                                                    |
+| `samples[].input`| Yes      | A string or an array of chat messages with `role` and `content`             |
+| `samples[].target` | No     | Expected answer, rubric, or grading guidance                                |
+| `samples[].metadata` | No   | Sample-level metadata copied into exported transcripts                      |
+
+Each sample runs as a separate conversation for each selected target. Multi-turn samples maintain conversation context within that sample. The `input` and `target` names are intentionally close to Inspect AI's `Sample` format; `target` maps cleanly to DeepEval's `expected_output`, and `input` can be adapted into promptfoo `tests[].vars`.
+
+Legacy scripts with a top-level `turns` array are still supported:
+
+```json
+{
+  "id": "legacy-eval",
+  "name": "Legacy Eval",
   "turns": [
     { "prompt": "First prompt text" },
     { "prompt": "Second prompt text" }
   ]
 }
 ```
-
-| Field   | Required | Description                                    |
-| ------- | -------- | ---------------------------------------------- |
-| `id`    | Yes      | Short identifier used in the exported filename |
-| `name`  | Yes      | Human-readable name shown in the sidepanel     |
-| `turns` | Yes      | Array of turns, each with a `prompt` string    |
-
-Multi-turn scripts maintain conversation context — each prompt is sent into the same ongoing chat session for that target.
 
 ---
 
@@ -77,28 +119,75 @@ Exported as JSON:
 
 ```json
 {
-  "script_id": "string",
-  "script_name": "string",
-  "run_timestamp": "ISO8601",
-  "targets": [
+  "schema_version": "strawbery.run.v1",
+  "run": {
+    "id": "run_2026-06-16T19-30-00-000Z",
+    "eval_id": "my-eval-id",
+    "eval_name": "My Eval Name",
+    "started_at": "ISO8601",
+    "completed_at": "ISO8601",
+    "duration_ms": 12345
+  },
+  "eval": {
+    "schema_version": "strawbery.eval.v1",
+    "id": "my-eval-id",
+    "name": "My Eval Name",
+    "description": "Optional description",
+    "tags": ["reasoning"],
+    "metadata": {}
+  },
+  "environment": {
+    "extension_version": "0.1.0",
+    "user_agent": "string",
+    "timezone": "America/Toronto"
+  },
+  "results": [
     {
-      "id": "string",
-      "name": "string",
-      "model_version": "string or null",
-      "error": "string or null",
+      "sample_id": "sample-1",
+      "target": {
+        "id": "chatgpt",
+        "name": "ChatGPT",
+        "url": "https://chatgpt.com",
+        "final_url": "https://chatgpt.com/...",
+        "model_version": "default",
+        "metadata": {}
+      },
+      "status": "completed",
+      "started_at": "ISO8601",
+      "completed_at": "ISO8601",
+      "duration_ms": 12345,
+      "messages": [
+        {
+          "role": "user",
+          "content": "First prompt text",
+          "timestamp": "ISO8601"
+        },
+        {
+          "role": "assistant",
+          "content": "Assistant response",
+          "timestamp": "ISO8601",
+          "duration_ms": 12345
+        }
+      ],
       "turns": [
         {
-          "timestamp": "ISO8601",
           "prompt": "string",
-          "response": "string"
+          "response": "string",
+          "prompt_timestamp": "ISO8601",
+          "response_timestamp": "ISO8601",
+          "duration_ms": 12345
         }
-      ]
+      ],
+      "target_output": "Assistant response",
+      "expected_output": "Optional expected answer or grading guidance.",
+      "metadata": {},
+      "error": null
     }
   ]
 }
 ```
 
-`model_version` is detected automatically from each target's UI when available. It falls back to a static label where the model name is not exposed (e.g. logged-out ChatGPT reports `"default"`), and is `null` if detection fails.
+`model_version` is detected automatically from each target's UI when available. It falls back to a static label where the model name is not exposed (e.g. logged-out ChatGPT reports `"default"`), and is `null` if detection fails. Message timestamps are captured during the run, not when the transcript is saved.
 
 ---
 
