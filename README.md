@@ -2,6 +2,8 @@
 
 A Chrome extension for running structured, multi-turn evaluations against multiple AI chatbots in batch. Designed for research use — prepare a prompt script, run it across targets, export the full transcript.
 
+![strawbery demo](./strawbery%20demo.gif)
+
 ---
 
 ## Installation
