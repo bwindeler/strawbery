@@ -1,0 +1,9 @@
+{
+  "name": "strawbery",
+  "version": "0.1.0",
+  "description": "Batch evaluation harness for multi-target AI chatbot research",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

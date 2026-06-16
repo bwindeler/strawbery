@@ -59,3 +59,9 @@ const BUILTIN_TARGETS = [
     responseSelector: '[data-message-author-role="assistant"] [data-testid="text-message-part"]',
   },
 ];
+
+// Expose for unit testing under Node. No-op in the browser, where `module`
+// is undefined and BUILTIN_TARGETS is consumed as a global.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { BUILTIN_TARGETS };
+}

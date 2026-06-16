@@ -11,7 +11,8 @@
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  typeof document !== "undefined" ? document.getElementById(id) : null;
 
 const scriptNameEl = $("script-name");
 const loadScriptBtn = $("load-script-btn");
@@ -513,4 +514,11 @@ function hideStatus() {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
-init();
+// Only bootstrap in the browser; under Node (tests) there is no DOM.
+if (typeof document !== "undefined") init();
+
+// Expose pure helpers for unit testing under Node. No-op in the browser, where
+// `module` is undefined.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { renderMarkdown, escHtml, slugify };
+}

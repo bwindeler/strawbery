@@ -136,6 +136,18 @@ Selectors may need updating as chatbot UIs change. The `sendSelector` button is 
 
 ---
 
+## Tests
+
+Unit tests cover the pure helpers (markdown rendering, HTML escaping, slugify,
+and the Gemini response cleaner). They use Node's built-in test runner — no
+dependencies to install:
+
+```sh
+npm test
+```
+
+---
+
 ## License
 
 MIT
