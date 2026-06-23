@@ -1,14 +1,20 @@
 // Built-in evaluation targets. Selectors are tuned for each site's current DOM
 // and will need updating as sites change their markup.
 //
+// `tier` flags whether a target needs an account:
+//   "free" — usable without an account (checked by default)
+//   "all"  — requires a logged-in account (marked with a "*" and off by default)
+//
 // Notes on login requirements:
 //   ChatGPT — works without login (free tier available)
 //   Gemini   — works without login when already on /app; redirects to Google auth if not signed in
 //   Mistral  — works without login; anonymous access confirmed on chat.mistral.ai
+//   Claude   — requires a signed-in claude.ai session; gated behind "All models"
 const BUILTIN_TARGETS = [
   {
     id: "chatgpt",
     name: "ChatGPT",
+    tier: "free",
     url: "https://chatgpt.com/",
     inputSelector: "#prompt-textarea",
     sendSelector: 'button[data-testid="send-button"]',
@@ -20,6 +26,7 @@ const BUILTIN_TARGETS = [
   {
     id: "gemini",
     name: "Gemini",
+    tier: "free",
     url: "https://gemini.google.com/app",
     // Gemini uses a Quill editor; .ql-clipboard is a hidden div — exclude it
     inputSelector: ".ql-editor:not(.ql-clipboard)",
@@ -50,6 +57,7 @@ const BUILTIN_TARGETS = [
   {
     id: "mistral",
     name: "Mistral",
+    tier: "free",
     url: "https://chat.mistral.ai/chat",
     // ProseMirror contenteditable editor
     inputSelector: ".ProseMirror",
@@ -57,6 +65,24 @@ const BUILTIN_TARGETS = [
     // Target the inner text container — the outer assistant div has empty textContent
     // during the initial render (avatar only), so the debounce never fires on it.
     responseSelector: '[data-message-author-role="assistant"] [data-testid="text-message-part"]',
+  },
+  {
+    id: "claude",
+    name: "Claude",
+    tier: "all",
+    // /new starts a fresh chat; redirects to login if no session exists.
+    url: "https://claude.ai/new",
+    // ProseMirror contenteditable editor (the visible composer, not the hidden clipboard).
+    inputSelector: 'div[contenteditable="true"].ProseMirror',
+    sendSelector: 'button[aria-label="Send message"]',
+    // font-claude-response wraps the rendered answer and excludes sr-only prefix text.
+    responseSelector: ".font-claude-response",
+    // Present while streaming; disappears when generation completes, so the
+    // debounce doesn't resolve mid-answer.
+    stopSelector: 'button[aria-label="Stop response"]',
+    // Model picker button shows e.g. "Claude Sonnet 4.5".
+    modelSelector: 'button[data-testid="model-selector-dropdown"]',
+    modelDefault: "default",
   },
 ];
 
