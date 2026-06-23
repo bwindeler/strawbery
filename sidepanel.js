@@ -92,15 +92,18 @@ function onFileSelected(e) {
 
 // ── Targets ───────────────────────────────────────────────────────────────────
 
+// Renders every target. "all"-tier rows (login-required models) are marked with
+// an asterisk — explained by the "*Requires login" note — and default to off.
 function renderTargets() {
   const container = $("targets-list");
   container.innerHTML = "";
   BUILTIN_TARGETS.forEach((t) => {
+    const requiresLogin = (t.tier ?? "free") === "all";
     const label = document.createElement("label");
     label.className = "target-row";
     label.innerHTML = `
-      <input type="checkbox" name="target" value="${t.id}" checked />
-      ${t.name}
+      <input type="checkbox" name="target" value="${t.id}" ${requiresLogin ? "" : "checked"} />
+      ${t.name}${requiresLogin ? "*" : ""}
     `;
     container.appendChild(label);
   });

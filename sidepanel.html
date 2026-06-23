@@ -74,6 +74,14 @@
         cursor: pointer;
       }
 
+      .targets-note {
+        font-size: 11px;
+        color: #888;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #f0f0f0;
+      }
+
       /* ── Script loader ── */
       .script-row {
         display: flex;
@@ -382,6 +390,12 @@
         letter-spacing: 0.05em;
       }
 
+      #editor-turns {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
       .ed-turn {
         display: flex;
         align-items: flex-start;
@@ -494,6 +508,7 @@
       <div id="targets-list">
         <!-- populated by targets.js + sidepanel.js -->
       </div>
+      <div class="targets-note" id="targets-note">*Requires login</div>
     </div>
 
     <!-- ── Options ── -->

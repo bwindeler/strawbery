@@ -23,6 +23,19 @@ test("BUILTIN_TARGETS: ids are unique", () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
+test("BUILTIN_TARGETS: every target declares a known tier", () => {
+  for (const t of BUILTIN_TARGETS) {
+    assert.ok(["free", "all"].includes(t.tier), `${t.id} has invalid tier: ${t.tier}`);
+  }
+});
+
+test("BUILTIN_TARGETS: Claude is an 'all'-tier (login-required) target", () => {
+  const claude = byId("claude");
+  assert.ok(claude, "claude target missing");
+  assert.equal(claude.tier, "all");
+  assert.match(claude.url, /claude\.ai/);
+});
+
 // ── Gemini responseClean ──────────────────────────────────────────────────────
 
 const clean = byId("gemini").responseClean;
