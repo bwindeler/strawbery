@@ -1,0 +1,13 @@
+{
+  "schema_version": "strawbery.registry.v1",
+  "description": "Registry of bundled eval scripts. To add an eval: drop a <id>.json in this folder and add an entry here. The first entry is loaded by default.",
+  "evals": [
+    {
+      "id": "strawbery",
+      "name": "Strawbery R-count",
+      "description": "Checks whether models count letters reliably across turns.",
+      "tags": ["reasoning", "multi-turn", "letter-counting"],
+      "file": "strawbery.json"
+    }
+  ]
+}
