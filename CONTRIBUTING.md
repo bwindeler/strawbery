@@ -59,8 +59,7 @@ target. Adding one is a **data-only change** — no code required.
       "input": [
         { "role": "user", "content": "First prompt" },
         { "role": "user", "content": "Follow-up" }
-      ],
-      "target": "What a correct answer looks like."
+      ]
     }
   ]
 }

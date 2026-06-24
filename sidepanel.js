@@ -474,7 +474,6 @@ function saveTranscript() {
           .filter((message) => message.role === "assistant")
           .map((message) => message.content)
           .join("\n\n"),
-        expected_output: sampleResult.sample?.target ?? null,
         metadata: sampleResult.sample?.metadata ?? {},
         error: sampleResult.error ?? null,
       }));
@@ -547,7 +546,6 @@ function normalizeSample(sample, index = 0) {
   return {
     id: sample.id ?? `sample-${index + 1}`,
     input,
-    target: sample.target ?? sample.expected_output ?? null,
     metadata: sample.metadata && typeof sample.metadata === "object" ? sample.metadata : {},
   };
 }
