@@ -8,7 +8,7 @@ A Chrome extension for running structured, multi-turn evaluations against multip
 
 ## Why evaluate in the browser?
 
-Most third-party AI model evaluations are run using APIs – but research shows that APIs do not always behave the same as the chatbot interfaces that most people use ([Kirgis et al.](https://arxiv.org/abs/2604.06188); [AI Forensics](https://aiforensics.org/work/chatbots-moderation)). As AI companies move towards model routers (e.g. [OpenAI](https://openai.com/index/gpt-5-system-card/)) the differences between application and API will continue. Strawbery runs scripted, multi-turn conversations against deployed chatbot interfaces, logged out as a default user sees them, and exports full transcripts.
+Most third-party AI model evaluations are run using APIs – but research shows that APIs do not always behave the same as the chatbot interfaces that most people use ([Kirgis et al.](https://arxiv.org/abs/2604.06188); [AI Forensics](https://aiforensics.org/work/chatbots-moderation)). As AI companies move towards model routers (e.g. [OpenAI](https://openai.com/index/gpt-5-system-card/)) the differences between application and API could grow. Strawbery helps automate running scripted, multi-turn conversations against live chatbot websites, and exports full transcripts.
 
 ---
 
@@ -26,7 +26,7 @@ Do not use this project to:
 - misrepresent automated outputs as human-generated;
 - run evaluations at a scale or frequency that could burden or disrupt third-party services.
 
-The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatbot services supported by this project. This software is provided as-is, without any warranty. You use it at your own risk and are solely responsible for your use of the tool, the prompts you submit, the outputs you collect, and your compliance with applicable laws and third-party terms.
+The maintainers are not affiliated with the chatbot services supported by this project. This software is provided as-is, without any warranty. You use it at your own risk and are solely responsible for your use of the tool, the prompts you submit, the outputs you collect, and your compliance with applicable laws and third-party terms.
 
 ---
 
@@ -79,7 +79,6 @@ The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatb
           "content": "Second prompt text"
         }
       ],
-      "target": "Optional expected answer or grading guidance.",
       "metadata": {
         "category": "optional-analysis-label"
       }
@@ -99,23 +98,9 @@ The maintainers are not affiliated with OpenAI, Google, Mistral AI, or the chatb
 | `samples`            | Yes      | Independent conversations to run against each selected target   |
 | `samples[].id`       | No       | Stable sample identifier                                        |
 | `samples[].input`    | Yes      | A string or an array of chat messages with `role` and `content` |
-| `samples[].target`   | No       | Expected answer, rubric, or grading guidance                    |
 | `samples[].metadata` | No       | Sample-level metadata copied into exported transcripts          |
 
-Each sample runs as a separate conversation for each selected target. Multi-turn samples maintain conversation context within that sample. The `input` and `target` names are intentionally close to Inspect AI's `Sample` format; `target` maps cleanly to DeepEval's `expected_output`, and `input` can be adapted into promptfoo `tests[].vars`.
-
-Legacy scripts with a top-level `turns` array are still supported:
-
-```json
-{
-  "id": "legacy-eval",
-  "name": "Legacy Eval",
-  "turns": [
-    { "prompt": "First prompt text" },
-    { "prompt": "Second prompt text" }
-  ]
-}
-```
+Each sample runs as a separate conversation for each selected target. Multi-turn samples maintain conversation context within that sample. The `input` name is intentionally close to Inspect AI's `Sample` format, and `input` can be adapted into promptfoo `tests[].vars`. strawbery collects transcripts only — scoring against expected answers is left to downstream eval tools.
 
 ---
 
@@ -185,7 +170,6 @@ Exported as JSON:
         }
       ],
       "target_output": "Assistant response",
-      "expected_output": "Optional expected answer or grading guidance.",
       "metadata": {},
       "error": null
     }

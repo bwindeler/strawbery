@@ -37,8 +37,6 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "input": { "$ref": "#/definitions/input" },
-        "target": { "type": "string" },
-        "expected_output": { "type": "string" },
         "metadata": { "type": "object" }
       }
     },

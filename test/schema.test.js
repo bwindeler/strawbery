@@ -19,7 +19,6 @@ test("normalizeEvalScript: accepts lightweight samples format", () => {
           { role: "user", content: "How many r's are in strawbery?" },
           { role: "user", content: "Double check." },
         ],
-        target: "There is 1 r.",
         metadata: { category: "counting" },
       },
     ],
@@ -29,7 +28,6 @@ test("normalizeEvalScript: accepts lightweight samples format", () => {
   assert.equal(script.samples[0].id, "basic");
   assert.equal(script.samples[0].input[0].role, "user");
   assert.equal(script.samples[0].input[0].content, "How many r's are in strawbery?");
-  assert.equal(script.samples[0].target, "There is 1 r.");
   assert.deepEqual(script.tags, ["reasoning"]);
   assert.deepEqual(script.metadata, { author: "test" });
 });
@@ -40,14 +38,6 @@ test("normalizeEvalScript: accepts single string input", () => {
   });
 
   assert.deepEqual(script.samples[0].input, [{ role: "user", content: "Hello" }]);
-});
-
-test("normalizeEvalScript: maps expected_output to target", () => {
-  const script = normalizeEvalScript({
-    samples: [{ input: "Hello", expected_output: "Hi" }],
-  });
-
-  assert.equal(script.samples[0].target, "Hi");
 });
 
 test("normalizeEvalScript: converts legacy turns format", () => {
