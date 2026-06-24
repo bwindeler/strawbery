@@ -199,13 +199,15 @@ Exported as JSON:
 
 ## Targets
 
-All three targets work without login, with one caveat for Gemini.
+The three free-tier targets work without login (with one caveat for Gemini).
+Login-required targets are marked with a `*` in the UI and are off by default.
 
 | Name            | URL                   | Login                                                                   |
 | --------------- | --------------------- | ----------------------------------------------------------------------- |
 | ChatGPT         | chatgpt.com           | Not required (free tier)                                                |
 | Gemini          | gemini.google.com/app | Not required when already on `/app`; otherwise redirects to Google auth |
 | Mistral Le Chat | chat.mistral.ai       | Not required (anonymous access)                                         |
+| Claude          | claude.ai             | Required — needs a signed-in claude.ai session                          |
 
 ---
 
@@ -238,6 +240,8 @@ Edit `targets.js`. Each entry needs:
 {
   id:               "unique-id",
   name:             "Display Name",
+  // "free" (no account) or "all" (requires login; shown with a * and off by default)
+  tier:             "free",
   url:              "https://...",
   inputSelector:    "CSS selector for the text input",
   sendSelector:     "CSS selector for the send button",
@@ -253,11 +257,13 @@ Selectors may need updating as chatbot UIs change. The `sendSelector` button is 
 
 ## Tests
 
-Unit tests cover the pure helpers (markdown rendering, HTML escaping, slugify,
-and the Gemini response cleaner). They use Node's built-in test runner — no
-dependencies to install:
+Tests cover the pure helpers (markdown rendering, HTML escaping, slugify, and
+the Gemini response cleaner) and validate the bundled eval corpus against the
+JSON Schema. They use Node's built-in test runner; install the one dev
+dependency (`ajv`) first:
 
 ```sh
+npm install
 npm test
 ```
 
