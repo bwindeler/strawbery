@@ -1,11 +1,8 @@
 /**
  * chatbot-eval-core — injectable content script.
  *
- * This file is the shared core library. It lives here temporarily under
- * extension/core/ and will be extracted to its own GitHub repository
- * (chatbot-eval-core) before either extension is published. Both
- * chatbot-eval-batch (Tool 1) and chatbot-eval-consumer (Tool 2) will
- * declare it as a dependency and bundle it at build time.
+ * Shared core library for the harness. Exposes the runner used to drive each
+ * target site's DOM (inject a prompt, click send, scrape the response).
  *
  * Exposes window.__harnessRunner so the orchestrator/sidepanel can call it via
  * chrome.scripting.executeScript. Runs in the ISOLATED world but has full DOM

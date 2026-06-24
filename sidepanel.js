@@ -17,6 +17,7 @@ const $ = (id) =>
 const scriptNameEl = $("script-name");
 const loadScriptBtn = $("load-script-btn");
 const scriptFileInput = $("script-file-input");
+const registrySelect = $("eval-registry-select");
 const runBtn = $("run-btn");
 const progressSection = $("progress-section");
 const progressText = $("progress-text");
@@ -42,22 +43,52 @@ function init() {
 
   runBtn.addEventListener("click", onRunClick);
   saveBtn.addEventListener("click", saveTranscript);
+  registrySelect.addEventListener("change", () =>
+    loadRegistryEval(registrySelect.value),
+  );
 
   initEditor();
-  loadDefaultScript();
+  loadRegistry();
 }
 
-async function loadDefaultScript() {
+// Reads sample-evals/index.json, populates the dropdown, and loads the first
+// bundled eval by default. Failing softly — the user can still Load/New a script.
+async function loadRegistry() {
   try {
-    const url = chrome.runtime.getURL("sample-evals/strawbery.json");
+    const url = chrome.runtime.getURL("sample-evals/index.json");
+    const res = await fetch(url);
+    const index = await res.json();
+    const evals = Array.isArray(index.evals) ? index.evals : [];
+    if (!evals.length) return;
+
+    registrySelect.innerHTML = "";
+    evals.forEach((entry) => {
+      const opt = document.createElement("option");
+      opt.value = entry.file;
+      opt.textContent = entry.name || entry.id || entry.file;
+      registrySelect.appendChild(opt);
+    });
+    registrySelect.classList.remove("hidden");
+    await loadRegistryEval(evals[0].file);
+  } catch (_) {
+    // Non-fatal — registry is optional; hide the dropdown if it can't load.
+    registrySelect.classList.add("hidden");
+  }
+}
+
+async function loadRegistryEval(file) {
+  if (!file) return;
+  try {
+    const url = chrome.runtime.getURL(`sample-evals/${file}`);
     const res = await fetch(url);
     const parsed = await res.json();
     currentScript = normalizeEvalScript(parsed);
-    scriptNameEl.textContent = currentScript.name || "strawbery.json";
+    scriptNameEl.textContent = currentScript.name || file;
     scriptNameEl.className = "script-name loaded";
     runBtn.disabled = false;
-  } catch (_) {
-    // Non-fatal — user can still load a script manually.
+    clearError();
+  } catch (err) {
+    showError(`Could not load "${file}": ${err.message}`);
   }
 }
 
@@ -75,6 +106,7 @@ function onFileSelected(e) {
       scriptNameEl.textContent = currentScript.name || file.name;
       scriptNameEl.className = "script-name loaded";
       runBtn.disabled = false;
+      registrySelect.selectedIndex = -1; // loaded script isn't a registry entry
       clearError();
     } catch (err) {
       showError(`Invalid script: ${err.message}`);
@@ -677,6 +709,7 @@ async function commitEditor() {
   scriptNameEl.textContent = name;
   scriptNameEl.className = "script-name loaded";
   runBtn.disabled = false;
+  registrySelect.selectedIndex = -1; // new script isn't a registry entry
   closeEditor();
 }
 
